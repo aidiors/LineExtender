@@ -56,24 +56,34 @@ class Application:
 
                 mouse_pos = win32api.GetCursorPos()
                 screenshot = self.window_capture.latest_screenshot
+                window_rect = self.window_capture.get_window_rect()
+                window_left, window_top, window_width, window_height = window_rect
 
-                if screenshot:
-                    left = max(0, mouse_pos[0] - self.config.capture_size // 2)
-                    top = max(0, mouse_pos[1] - self.config.capture_size // 2)
-                    right = min(self.window_manager.screen_width, mouse_pos[0] + self.config.capture_size // 2)
-                    bottom = min(self.window_manager.screen_height, mouse_pos[1] + self.config.capture_size // 2)
+                if screenshot and window_width > 0 and window_height > 0:
+                    # Проверяем, находится ли курсор внутри окна игры
+                    if (window_left <= mouse_pos[0] <= window_left + window_width and
+                            window_top <= mouse_pos[1] <= window_top + window_height):
 
-                    if right - left > 120 and bottom - top > 120:
-                        region = screenshot.crop((left, top, right, bottom))
-                        region_np = np.array(region)
-                        region_cv = cv2.cvtColor(region_np, cv2.COLOR_RGB2BGR)
+                        # Преобразуем глобальные координаты в локальные относительно окна
+                        local_cursor_x = mouse_pos[0] - window_left
+                        local_cursor_y = mouse_pos[1] - window_top
 
-                        local_cursor = (mouse_pos[0] - left, mouse_pos[1] - top)
+                        # Обрезаем регион вокруг курсора внутри скриншота
+                        capture_half = self.config.capture_size // 2
+                        left = max(0, local_cursor_x - capture_half)
+                        top = max(0, local_cursor_y - capture_half)
+                        right = min(window_width, local_cursor_x + capture_half)
+                        bottom = min(window_height, local_cursor_y + capture_half)
 
-                        vx, vy = self.line_detector.detect_main_direction(region_cv, *local_cursor)
-
-                        self.renderer.render(vx, vy, mouse_pos)
-
+                        if right - left > 120 and bottom - top > 120:
+                            region = screenshot.crop((left, top, right, bottom))
+                            region_np = np.array(region)
+                            region_cv = cv2.cvtColor(region_np, cv2.COLOR_RGB2BGR)
+                            # Локальные координаты курсора внутри региона
+                            local_cursor = (local_cursor_x - left, local_cursor_y - top)
+                            vx, vy = self.line_detector.detect_main_direction(region_cv, *local_cursor)
+                            # Передаем глобальные координаты курсора и информацию об окне
+                            self.renderer.render(vx, vy, mouse_pos, window_rect)
                 self.clock.tick(self.config.target_fps)
 
         finally:
