@@ -6,7 +6,7 @@ import win32ui
 import win32con
 from PIL import Image
 
-class GameCapture:
+class WindowCapture:
     def __init__(self, window_name: str) -> None:
         self.window_name = window_name
         self.hwnd = self._find_target_window()

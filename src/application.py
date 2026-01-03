@@ -6,7 +6,7 @@ import numpy as np
 
 from app_config import AppConfig
 from window_manager import WindowManager
-from game_capture import GameCapture
+from window_capture import WindowCapture
 from line_detector import LineDetector
 from overlay_renderer import OverlayRenderer
 from settings_control import SettingsControl
@@ -15,7 +15,7 @@ class Application:
     def __init__(self, config: AppConfig) -> None:
         self.config = config
         self.window_manager = WindowManager(config)
-        self.game_capture = GameCapture(config.game_window_name)
+        self.window_capture = WindowCapture(config.game_window_name)
         self.line_detector = LineDetector(config)
         self.renderer = OverlayRenderer(self.window_manager, config)
         self.settings_control = SettingsControl(config)
@@ -40,9 +40,9 @@ class Application:
 
     def run(self) -> None:
         try:
-            self.game_capture.start()
+            self.window_capture.start()
 
-            while self.running and self.game_capture.latest_screenshot is None:
+            while self.running and self.window_capture.latest_screenshot is None:
                 pygame.time.delay(10)
                 self._process_events()
                 self._check_exit_key()
@@ -55,7 +55,7 @@ class Application:
                 cv2.waitKey(1)
 
                 mouse_pos = win32api.GetCursorPos()
-                screenshot = self.game_capture.latest_screenshot
+                screenshot = self.window_capture.latest_screenshot
 
                 if screenshot:
                     left = max(0, mouse_pos[0] - self.config.capture_size // 2)
@@ -81,6 +81,6 @@ class Application:
 
     def shutdown(self) -> None:
         self.running = False
-        self.game_capture.stop()
+        self.window_capture.stop()
         pygame.quit()
         cv2.destroyAllWindows()
